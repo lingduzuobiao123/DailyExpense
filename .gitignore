@@ -2,3 +2,11 @@
 /.gradle/
 /app/build/
 /app/build/intermediates/javac/release/compileReleaseJavaWithJavac/classes/
+/local.properties
+/import-summary.txt
+/gradlew.bat
+/gradlew
+/gradle/wrapper/gradle-wrapper.jar
+/build/intermediates/lint-cache/
+/.idea/
+app/libs/
