@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="gesture_cancel_color_selected">#383838</color>
+    <color name="gesture_cancel_color_normal">#000000</color>
+    <color name="gridview_expense_type_select">#53EE2D</color>
+
+</resources>

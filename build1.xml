@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 步骤   
+  
+    1.用aapt生成R.java  
+  
+    2.JAVAC编译JAVA文件  
+  
+    3.批处理生成classes.dex  
+  
+    4.aapt打包资源   
+  
+    5.apkbuilder包资源和类文件为APK文件  
+  
+    6.jarsinger 对APK进行签名-->
+
+    <!-- <project name="DailyExpense" default="input" basedir="."> -->
+    <project name="DailyExpense" default="deploy" >
+        
+    <property environment="env" />
+    <!-- 应用名称 -->  
+    <property name="appName" value="${ant.project.name}"/>  
+    
+    <!-- 渠道名:渠道号,版本号 -->
+	<property file="build.properties" />
+	
+	<!-- 使用第三方的ant包，使ant支持for循环-->
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
+		<classpath>
+			<pathelement location="${env.ANT_HOME}/lib/ant-contrib-1.0b3.jar" />
+		</classpath>
+	</taskdef>
+
+    <!-- SDK目录 -->  
+    <property name="android_home" value="${env.ANDROID_SDK_HOME}" />  
+    <!-- SDK平台目录 -->  
+    <property name="android-platform" value="${android_home}/platforms/android-17"/>
+    <!--tools目录-->
+    <property name="android-tools" value="${android_home}/tools"/> 
+    <!--platform-tools目录-->
+	<property name="android_platform-tools" value="${android_home}/platform-tools"/>
+	
+	<condition property="exe" value=".exe" else=""><os family="windows" /></condition>
+  <condition property="bat" value=".bat" else=""><os family="windows" /></condition>
+	
+    <!--appt目录-->
+    <property name="aapt" value="${android_platform-tools}/aapt${exe}" />  
+	<!--aidl目录-->
+    <property name="aidl" value="${android_platform-tools}/aidl${exe}" />  
+	<!--dx.bat目录(.bat windows平台扩展名）-->
+    <property name="dx" value="${android_platform-tools}/dx${bat}" />  
+	<!--apkbuilder.bat目录-->
+    <property name="apk-builder" value="${android-tools}/apkbuilder${bat}" />  
+	<!--jarsigner目录-->
+    <property name="jarsigner" value="${env.JAVA_HOME}/bin/jarsigner" /> 
+    <!-- zipalign优化apk -->
+    <property name="zipalign" value="${android-tools}/zipalign${exe}" />
+    <!--混淆变量-->
+    <property name="proguard-home" value="${android-tools}/proguard/lib"/> 
+	<!--外部包目录-->  
+	<property name="external-libs" value="libs" />
+	<condition property="external-libs-ospath" value="${basedir}/${external-libs}" else="${basedir}/${external-libs}">  
+        <os family="windows" />  
+    </condition>  
+	<!--相应android编译平台目录-->
+    <property name="android-jar" value="${android-platform}/android.jar" />  
+    <!-- 编译aidl文件所需的预处理惩罚框架文件framework.aidl -->  
+    <property name="framework-aidl" value="${android-platform}/framework.aidl" /> 
+
+	<!-- 定义自己的输出目录 -->
+	<property name="outdir" value="../../${appName}build" />
+	<property name="out.absolute.dir" location="${outdir}" />
+	<property name="out.signedapkdir.dir" location="${outdir}/signedapkdir" />
+	<property name="out.zipalignapkdir.dir" location="${outdir}/zipaligndapkdir" />
+
+	<!-- 第三方jar文件 -->
+	<property name="support_v4" value="android-support-v4.jar" />
+	<property name="support_v7" value="android-support-v7-appcompat.jar" />
+	<property name="umeng" value="umeng-analytics-v5.4.2.jar"/>
+	<!-- 要生成的jar包 -->
+	<property name="all-jar" value="all.jar" />
+	
+
+	<!-- 定义 R.java 所有目录 -->
+	<property name="outdir-gen" value="gen" />
+	<!-- 读取目录 -->
+	<property name="resource-dir" value="res" />
+	<property name="asset-dir" value="assets" />
+	<property name="src-dir" value="src" />
+	<property name="src-dir-path" value="${basedir}/${src-dir}" />
+
+	<!-- 输出目录 -->
+	<property name="outdir-classes" value="${outdir}/classes" />
+	<property name="out.classes.absolute.dir" location="${outdir-classes}" />
+
+	<!-- 临时类资源文件 -->
+	<property name="dex-file" value="classes.dex" />
+	<property name="intermediate-dex" value="${out.absolute.dir}/${dex-file}" />
+
+	<!-- 最终生成各种包文件 -->
+	<property name="resources-package" value="${outdir}/resources.ap_" />
+	<property name="resources-package-path" value="${basedir}/${resources-package}" />
+	<property name="out-unsigned-package-first" value="${basedir}/${outdir}/${ant.project.name}-" />
+	<property name="out-unsigned-package-end" value="-unsigned.apk" />
+	<property name="out-signed-package-name" value="${appName}" />
+	<property name="out-signed-package-first" value="${out.signedapkdir.dir}/${out-signed-package-name}" />
+	<property name="out-signed-package-end" value=".apk" />
+	<property name="out-zipalign-package-first" value="${out.zipalignapkdir.dir}/${out-signed-package-name}" />
+	<property name="out-zipalign-package-end" value=".apk" />
+	<property name="out-unsigned-package-apk" value="${out-signed-package-first}${id}${out-signed-package-end}" />
+	<property name="out-signed-package-apk" value="${out-unsigned-package-first}${id}${out-unsigned-package-end}" />
+
+	<!--签名工具-->
+	<property name="keystorefile" location="dongxulin.keystore"/>
+	<property name="keypass" value="dongxulin" />
+	<property name="aliasname" value="dongxulin" />
+    
+	<!--渠道变量 -->
+	<property name="channelname" value="" />
+	<property name="channelkey" value="" />
+	<!-- 命令行指令 -->
+	<property name="rdir" value="release"/>
+	
+	<!--优化APK工具-->
+	<path id="libjar">
+		<fileset dir="${external-libs}">
+			<include name="*.jar" />
+			<exclude name="${support_v4}"/>
+			<exclude name="${support_v7}"/>   
+			<exclude name="${umeng}"/>
+		</fileset>
+	</path>
+	
+	<!-- 输入交互 -->
+	<target name="input">
+	<input message="please input:release for release version or beta for debug version"
+	    validargs="release,beta"
+	    addproperty="my.input"/>
+	    <echo>your have input:${my.input}</echo> 
+	     <antcall target="deploy"/>
+	</target>
+    
+	<!--循环打包 -->
+	<target name="deploy">
+		<echo>deploy deploy deploy deploy ... </echo>
+		<echo>All channels ==>${market_channels}  </echo>
+		<foreach target="modify_manifest" list="${market_channels}" param="nameandchannel" delimiter=",">
+		</foreach>
+	</target>
+	<target name="modify_manifest">
+	    
+		<!-- 获取渠道名字 -->
+		<echo>modify_manifest ... </echo>
+		<propertyregex override="true" property="channelname" input="${nameandchannel}" regexp="(.*):" select="\1" />
+		<!-- 获取渠道号码 -->
+		<propertyregex override="true" property="channelkey" input="${nameandchannel}" regexp=":(.*)" select="\1" />
+		
+		<echo>渠道名字 ===>${channelkey} </echo>
+		
+		 <!-- 正则匹配替换友盟渠道号 -->
+		 <replaceregexp flags="g" byline="false" encoding="UTF-8">
+			<regexp pattern="android:name=&quot;UMENG_CHANNEL&quot; android:value=&quot;(.*)&quot;" />
+			<substitution expression="android:name=&quot;UMENG_CHANNEL&quot; android:value=&quot;${channelkey}&quot;" />
+			<fileset dir="" includes="AndroidManifest.xml" />
+		 </replaceregexp> 
+		<!-- <antcall target="jarsigner" /> -->
+		<antcall target="zipalign" />
+	</target>
+
+	<target name="makeSuperJar" description="description" depends="isJarExists" if="jarExists">
+		<jar destfile="${external-libs}/${all-jar}">
+			<zipfileset src="${external-libs}/${support_v4}"/>
+			<zipfileset src="${external-libs}/${support_v7}"/>
+			<zipfileset src="${external-libs}/${umeng}"/>
+		</jar>
+	</target>
+	
+	<target name="isJarExists" description="description" >
+		<condition property="jarExists">
+		 <not>
+		  <available file="${external-libs}/${all-jar}"></available>
+		 </not>
+		</condition>
+	</target>
+
+	<!-- 初始化 -->
+	<target name="init">
+		<echo>Creating all output directories </echo>
+		<delete file="${external-libs}/all.jar"/>
+		<delete dir="${outdir}" />
+		<delete dir="${outdir-gen}" />
+		<mkdir dir="${outdir}" />
+		<mkdir dir="${outdir-classes}" />
+		<mkdir dir="${outdir-gen}" />
+		<mkdir dir="${out.signedapkdir.dir}" />
+		<mkdir dir="${out.zipalignapkdir.dir}" />
+	</target>
+
+	<!--步骤 1： aapt生成R.java -->
+	<target name="resource-src" >
+		<echo>Generating R.java...</echo>
+		<exec executable="${aapt}" failonerror="true">
+			<arg value="package" />
+			<arg value="-f" />
+			<arg value="-m" />
+			<arg value="-J" />
+			<arg value="${outdir-gen}" />
+			<arg value="-M" />
+			<arg value="AndroidManifest.xml" />
+			<arg value="-S" />
+			<arg value="${resource-dir}" />
+			<arg value="-I" />
+			<arg value="${android-jar}" />
+		</exec>
+	</target>
+
+	<!-- Generate java classes from .aidl files. -->
+	<target name="aidl" depends="resource-src">
+		<echo>Compiling aidl files into Java classes...</echo>
+		<apply executable="${aidl}" failonerror="true">
+			<arg value="-p${framework-aidl}" />
+			<arg value="-I${src-dir}" />
+			 <!-- 目标文件目录 -->  
+			 <arg value="-o${outdir-gen}"/>  
+			<fileset dir="${src-dir}">
+				<include name="**/*.aidl" />
+			</fileset>
+		</apply>
+	</target>
+	
+	<target name="optimize" depends="compile">  
+	    <echo>optimize ...</echo>
+	     <echo>混淆混淆混淆混淆混淆混淆混淆混淆</echo>
+    <jar basedir="${outdir-classes}" destfile="temp.jar"/>  
+    <java jar="${proguard-home}/proguard.jar" fork="true" failonerror="true">  
+        <jvmarg value="-Dmaximum.inlined.code.length=32"/>  
+        <arg value="-injars temp.jar"/>  
+        <arg value="-outjars optimized.jar"/>  
+        <arg value="-libraryjars ${android-jar}"/>  
+        <arg value="-dontpreverify"/>  
+        <arg value="-dontoptimize"/>  
+        <arg value="-allowaccessmodification"/>
+        <arg value="-dontusemixedcaseclassnames"/>  
+
+        
+        <arg value="-keep public class * extends android.app.Activity"/> 
+        <arg value="-keep public class * extends android.app.Application"/>  
+        <arg value="-keep public class * extends android.app.Service"/>  
+        <arg value="-keep public class * extends android.content.BroadcastReceiver"/>
+        <arg value="-keep public class * extends android.content.ContentProvider"/>  
+        <arg value="-keep public class * extends android.app.backup.BackupAgentHelper"/>  
+        <arg value="-keep public class * extends android.preference.Preference"/>  
+        <arg value="-keep public class com.android.vending.licensing.ILicensingService"/>
+        
+        <arg value="-keepclassmembers class * {public &lt;init&gt;(org.json.JSONObject);}"/>
+         
+        <arg value="-keep public class * extends android.view.View { public &lt;init&gt;(android.content.Context);
+            public &lt;init&gt;(android.content.Context, android.util.AttributeSet);
+            public &lt;init&gt;(android.content.Context, android.util.AttributeSet, int);
+            public void set*(...); }"/>
+        <arg value="-keepclasseswithmembers class * { 
+            public &lt;init&gt;(android.content.Context, android.util.AttributeSet, int);}"/>
+
+        <arg value="-keepclasseswithmembers class * {
+            public &lt;init&gt;(android.content.Context, android.util.AttributeSet);}"/>
+        <arg value="-keepclassmembers class * extends android.content.Context {
+            public void *(android.view.View);
+            public void *(android.view.MenuItem);}"/>
+        <arg value="-keepclassmembers class * implements android.os.Parcelable {
+            static android.os.Parcelable$Creator CREATOR;}"/>
+        <!--  所有native的方法不能去混淆. -->
+        <arg value="-keepclasseswithmembernames class * {
+            native &lt;methods&gt;;}"></arg>
+         <!--  枚举类不能去混淆. -->
+         <arg value="-keepclassmembers enum * {
+           public static **[] values();
+    	   public static ** valueOf(java.lang.String);}"></arg>
+         
+         <!-- 混淆关闭 Log日志输出  -->
+         <arg value="-assumenosideeffects class android.util.Log{ 
+             public static *** d(...); 
+             public static *** i(...); 
+             public static *** v(...); }"></arg>
+        
+        <arg value="-libraryjars ${external-libs}/all.jar"></arg>
+        
+        <arg value="-keep class android.net.http.**{ *; }"/>
+        <arg value="-keep class android.webkit.**{ *; }"/>
+        
+        <arg value="-dontwarn com.umeng.**"></arg>
+        <arg value="-keep class com.umeng*.** {*; }" />
+        
+        <arg value="-dontwarn android.support.v4.**"></arg>
+        <arg value="-keep class android.support.v4.**{*;}" />
+        <arg value="-keep public class * extends android.support.v4.**"></arg>
+        <arg value="-keep public class * extends android.app.Fragment"></arg>
+        
+        <!-- 微信 -->
+         <arg value="-keep class com.tencent.mm.sdk.openapi.WXMediaMessage {*;}"></arg>
+        <arg value="-keep class com.tencent.mm.sdk.openapi.** implements com.tencent.mm.sdk.openapi.WXMediaMessage$IMediaObject {*;}"></arg>
+        
+        <!-- js混淆  -->
+         <arg value="-keep class com.dong.expense.fragment.RecommendFragment$WebJsActivity{*;}"/> 
+       <!--  <arg value="-keep public class com.dong.expense.R$*{public static final int *;}"/> -->
+       <!--  <arg value="-keep class com.dong.expense.activity.**{*;}" /> -->
+       <!--  <arg value="-keep class com.dong.expense.fragment.**{*;}" /> -->
+    	
+    	<!--修复扰码后无法启动，保护 注解不被扰码-->
+    	<arg value="-keepattributes *Annotation*"/>
+    	<arg value="-renamesourcefileattribute SourceFile" />
+    	<arg value="-keepattributes SourceFile,LineNumberTable"/>
+    	
+    	
+        <arg value="-optimizationpasses 7"/>  
+        <arg value="-verbose"/> 
+        <arg value="-ignorewarnings"/> 
+        <arg value="-dontskipnonpubliclibraryclasses"/>  
+        <arg value="-dontskipnonpubliclibraryclassmembers"/>  
+        <arg value="-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*"/>
+        
+    </java>  
+    <delete file="temp.jar"/>
+    <delete dir="${outdir-classes}"/>
+    <mkdir dir="${outdir-classes}"/>  
+    <unzip src="optimized.jar" dest="${outdir-classes}"/>  
+    <delete file="optimized.jar"/>
+    </target> 
+
+	<!-- 步骤 2. 编译所有class文件. -->
+	<target name="compile" depends="aidl">
+		<javac encoding="UTF-8" target="1.6" debug="false" extdirs="" srcdir="." destdir="${outdir-classes}" bootclasspath="${android-jar}" includeantruntime="on">
+			<classpath refid="libjar" />
+		</javac>
+	</target>
+
+	<!-- 步骤 3. 转换class文件为dex文件. -->
+	  <target name="dex" depends="makeSuperJar,compile">  
+	 	 <!--<target name="dex" depends="makeSuperJar,compile,optimize">-->
+		<echo>${intermediate-dex}</echo>
+		<echo>${out.classes.absolute.dir}</echo>
+		<apply executable="${dx}" failonerror="true">
+			<arg value="--dex" />
+			<arg value="--output=${intermediate-dex}" />
+			<arg path="${out.classes.absolute.dir}" />
+			<fileset dir="${external-libs}">
+				<include name="*.jar" />
+				<exclude name="${support_v4}"/>   
+				<exclude name="${support_v7}"/>   
+				<exclude name="${umeng}"/>
+			</fileset>
+		</apply >
+	</target>
+
+	<!-- 步骤 4. 将资源和清单打包. -->
+
+	<target name="package-res-and-assets">
+		<echo>Packaging resources and assets...</echo>
+		<echo>resources-package: ${resources-package}</echo>
+		<exec executable="${aapt}" failonerror="true">
+			<arg value="package" />
+			<arg value="-f" />
+			<arg value="-M" />
+			<arg value="AndroidManifest.xml" />
+			<arg value="-S" />
+			<arg value="${resource-dir}" />
+			<arg value="-A" />
+			<arg value="${asset-dir}" />
+			<arg value="-I" />
+			<arg value="${android-jar}" />
+			<arg value="-F" />
+			<arg value="${resources-package}" />
+		</exec>
+	</target>
+
+	<!-- 步骤 5. 将打好的包编译为APK文件. -->
+	<target name="debug" depends="dex,package-res-and-assets">
+	    <echo>打包成未签证的apk....</echo>  
+		<exec executable="${apk-builder}" failonerror="true">
+			<arg value="${out-unsigned-package-first}${out-unsigned-package-end}" />
+	        <arg value="-u" />
+			<arg value="-z" />
+			<arg value="${resources-package-path}" />
+			<arg value="-f" />
+			<arg value="${intermediate-dex}" />
+			<arg value="-rf" />
+			<arg value="${src-dir-path}" />
+		 	<arg value="-rj" />  
+            <arg value="${external-libs-ospath}/${all-jar}" />
+            <arg value="-nf" />  
+            <arg value="${external-libs-ospath}" />
+		</exec>
+	</target>
+
+	<target name="timezone">
+	    <tstamp prefix="build.">	        
+	        <format property="TimeSign" pattern="MMdd"/>
+	    </tstamp>
+	</target>
+	
+	<!--步骤 6. 签名APK文件 -->
+	<target name="jarsigner" depends="init,debug,timezone">
+		<exec executable="${jarsigner}" failonerror="true">
+			<arg value="-verbose" />
+			<arg value="-keystore" />
+			<arg value="${keystorefile}" />
+			<arg value="-storepass" />
+			<arg value="${keypass}" />
+			<arg value="-keypass" />
+			<arg value="${keypass}" />
+			<arg value="-signedjar" />
+			<arg value="${out-signed-package-first}${out-signed-package-end}" />
+			<arg value="${out-unsigned-package-first}${out-unsigned-package-end}" />
+			<arg value="${aliasname}" />
+		</exec>
+		<delete file="${out-unsigned-package-first}${out-unsigned-package-end}">
+		</delete>
+		<!-- <copy file="${out.signedapkdir.dir}/${appName}.apk" tofile="../../../../${rdir}/${appName}/${build.TimeSign}/${channelname}_${out-signed-package-name}_${current_version}_${build.TimeSign}_${channelkey}${out-signed-package-end}" /> -->
+	</target>
+	
+	<!-- 打包的应用程序进行优化 -->
+	<target name="zipalign" depends="jarsigner">
+	   <exec executable="${zipalign}" failonerror="true">
+			<arg value="-v" />
+			<arg value="4" />
+			<arg value="${out-signed-package-first}${out-signed-package-end}" />
+			<arg value="${out-zipalign-package-first}${out-zipalign-package-end}" />
+		</exec>
+		<!-- <copy file="${out.zipalignapkdir.dir}/${appName}.apk" tofile="../../../../zipalign/${appName}/${build.TimeSign}/${channelname}_${out-signed-package-name}_${current_version}_${build.TimeSign}_${channelkey}${out-signed-package-end}" /> -->
+		<copy file="${out.zipalignapkdir.dir}/${appName}.apk" tofile="../../../../${rdir}/${appName}/${build.TimeSign}/${channelname}_${out-signed-package-name}_${current_version}_${build.TimeSign}_${channelkey}${out-signed-package-end}" />
+	    <delete file="${external-libs}/all.jar"/>
+	</target>
+</project>
+

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">日常管家</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- Gesture code starting -->
+    <string name="login_gesture_code">手势密码</string>
+    <string name="setup_gesture_code">设置手势密码</string>
+    <string name="setup_gesture_pattern">绘制解锁图案</string>
+    <string name="setup_gesture_pattern_again">再次绘制解锁图案</string>
+    <string name="forget_gesture_code"><u>忘记手势密码</u></string>
+    <string name="unlocked_gesture_code">手势密码解锁</string>
+    <string name="set_gesture_pattern_reason">设置手势密码，防止他人未经授权查看</string>
+    <string name="reset_gesture_code">重新设置手势密码</string>
+    <string name="forget_gesture">忘记手势密码</string>
+    
+    <string name="expense_list_text">消费列表</string>
+    <string name="expense_add_text">添加消费</string>
+    <string name="expense_update_text">修改消费</string>
+    <string name="expense_save_text">保存</string>
+
+    <string name="setting_title_text">设置</string>
+    
+    
+    <string-array name="expense_type_list">
+        <item>三餐</item>
+        <item>吃玩</item>
+        <item>公交</item>
+        <item>超市</item>
+        <item>车费</item>
+        <item>房租</item>
+        <item>衣物</item>
+        <item>电子</item>
+        <item>水果</item>
+    </string-array>
+</resources>

@@ -1,0 +1,77 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <include
+        android:id="@+id/top_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        layout="@layout/title_view" />
+
+    <GridView
+        android:id="@+id/expense_type_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/top_layout"
+        android:layout_marginTop="10dip"
+        android:listSelector="@android:color/transparent"
+        android:numColumns="4" >
+    </GridView>
+
+    <EditText
+        android:id="@+id/edit_expense_money"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/expense_type_view"
+        android:layout_marginLeft="@dimen/expense_write_margin"
+        android:layout_marginRight="@dimen/expense_write_margin"
+        android:layout_marginTop="10dip"
+        android:hint="请输入金额"
+        android:phoneNumber="true"
+        android:textSize="17sp" />
+
+    <Button
+        android:id="@+id/btn_set_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/edit_expense_money"
+        android:layout_marginLeft="@dimen/expense_write_margin"
+        android:layout_marginTop="10dip"
+        android:text="2015-03-25" />
+
+    <Button
+        android:id="@+id/btn_set_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@id/btn_set_date"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="@dimen/expense_write_margin"
+        android:layout_toRightOf="@id/btn_set_date"
+        android:text="18:17" />
+
+    <TextView
+        android:id="@+id/text_explain"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_set_date"
+        android:layout_marginLeft="@dimen/expense_write_margin"
+        android:layout_marginTop="10dip"
+        android:text="说明:"
+        android:textSize="16sp" />
+
+    <EditText
+        android:id="@+id/edit_explain"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@id/text_explain"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="@dimen/expense_write_margin"
+        android:layout_toRightOf="@id/text_explain"
+        android:gravity="left|top"
+        android:maxLines="5"
+        android:minLines="5"
+        android:textSize="14sp" />
+
+</RelativeLayout>
